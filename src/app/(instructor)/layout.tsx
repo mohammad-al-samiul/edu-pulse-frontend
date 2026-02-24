@@ -1,28 +1,28 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSelector } from "react-redux";
-import { RootState } from "@/src/lib/store";
+import { ReactNode, useEffect } from "react";
+import { DashboardShell } from "@/components/layout/DashboardShell";
+import { useAuth } from "@/hooks/useAuth";
 
-export default function InstructorLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function InstructorLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, role, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    if (!user) {
-      router.push("/login");
+    if (!isAuthenticated) {
+      router.replace("/login");
       return;
     }
 
-    if (user.role !== "INSTRUCTOR") {
-      router.push("/unauthorized");
+    if (role !== "INSTRUCTOR") {
+      router.replace("/unauthorized");
     }
-  }, [user, router]);
+  }, [isAuthenticated, role, router]);
 
-  return <>{children}</>;
+  if (!user || role !== "INSTRUCTOR") {
+    return null;
+  }
+
+  return <DashboardShell role="INSTRUCTOR">{children}</DashboardShell>;
 }
