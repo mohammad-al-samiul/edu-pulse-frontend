@@ -1,43 +1,53 @@
- import { baseApi } from "@/redux/api/baseApi";
- 
- export const categoriesApi = baseApi.injectEndpoints({
-   endpoints: (builder) => ({
-     createCategory: builder.mutation<{ success: boolean }, { name: string }>({
-       query: (body) => ({
-         url: "/categories",
-         method: "POST",
-         data: body,
-       }),
-     }),
-     getCategories: builder.query<unknown, void>({
-       query: () => ({
-         url: "/categories",
-         method: "GET",
-       }),
-     }),
-     updateCategory: builder.mutation<
-       { success: boolean },
-       { id: string; body: { name?: string } }
-     >({
-       query: ({ id, body }) => ({
-         url: `/categories/${id}`,
-         method: "PATCH",
-         data: body,
-       }),
-     }),
-     deleteCategory: builder.mutation<{ success: boolean }, { id: string }>({
-       query: ({ id }) => ({
-         url: `/categories/${id}`,
-         method: "DELETE",
-       }),
-     }),
-   }),
+import { baseApi } from "@/redux/api/baseApi";
+import { apiTags } from "@/redux/api/apiTags";
+import type {
+  ICategory,
+  ICategoryCreate,
+  ICategoryUpdate,
+} from "@/types/category.type";
+
+export const categoriesApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    createCategory: builder.mutation<ICategory, ICategoryCreate>({
+      query: (body) => ({
+        url: "/categories",
+        method: "POST",
+        data: body,
+      }),
+      invalidatesTags: [apiTags.CATEGORY_LIST],
+    }),
+    getCategories: builder.query<ICategory[], void>({
+      query: () => ({
+        url: "/categories",
+        method: "GET",
+      }),
+      providesTags: [apiTags.CATEGORY_LIST],
+    }),
+    updateCategory: builder.mutation<
+      ICategory,
+      { id: string; body: ICategoryUpdate }
+    >({
+      query: ({ id, body }) => ({
+        url: `/categories/${id}`,
+        method: "PATCH",
+        data: body,
+      }),
+      invalidatesTags: [apiTags.CATEGORY, apiTags.CATEGORY_LIST],
+    }),
+    deleteCategory: builder.mutation<{ success: boolean }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/categories/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [apiTags.CATEGORY_LIST],
+    }),
+  }),
   overrideExisting: false,
 });
- 
- export const {
-   useCreateCategoryMutation,
-   useGetCategoriesQuery,
-   useUpdateCategoryMutation,
-   useDeleteCategoryMutation,
- } = categoriesApi;
+
+export const {
+  useCreateCategoryMutation,
+  useGetCategoriesQuery,
+  useUpdateCategoryMutation,
+  useDeleteCategoryMutation,
+} = categoriesApi;

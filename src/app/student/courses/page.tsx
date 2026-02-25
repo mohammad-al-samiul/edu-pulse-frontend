@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useGetCoursesQuery } from "@/features/courses/coursesApi";
 import { useCreateEnrollmentMutation } from "@/features/enrollments/enrollmentsApi";
+import { CourseStatus } from "@/types/enums";
+import type { ICourse } from "@/types/course.type";
 import { useGetCategoriesQuery } from "@/features/categories/categoriesApi";
 import { useState, useMemo } from "react";
 import {
@@ -50,13 +52,11 @@ export default function StudentCoursesPage() {
     page,
     limit,
     categoryId,
-    status: "ACTIVE",
+    status: CourseStatus.PUBLISHED,
   });
   const [enroll, { isLoading: isEnrolling }] = useCreateEnrollmentMutation();
 
-  const courses = Array.isArray(coursesData)
-    ? coursesData
-    : (coursesData as { data?: unknown[] })?.data || [];
+  const courses = coursesData?.courses || [];
 
   const handleEnroll = async (id: string) => {
     await enroll({ courseId: id }).unwrap();
@@ -92,17 +92,20 @@ export default function StudentCoursesPage() {
           <p className="text-muted-foreground">Browse and enroll</p>
         </div>
         <div className="flex items-center gap-3">
-          <Select onValueChange={(v) => setCategoryId(v || undefined)}>
+          <Select
+            onValueChange={(v) => setCategoryId(v === "all" ? undefined : v)}
+            value={categoryId || "all"}
+          >
             <SelectTrigger className="w-56">
-              <SelectValue placeholder="Filter by category" />
+              <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All</SelectItem>
               {categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}
                 </SelectItem>
               ))}
-              <SelectItem value="">All</SelectItem>
             </SelectContent>
           </Select>
           <Select onValueChange={(v) => setLimit(Number(v))}>
@@ -126,47 +129,49 @@ export default function StudentCoursesPage() {
             </CardContent>
           </Card>
         ) : (
-          courses.map(
-            (course: {
-              id: string;
-              title: string;
-              category?: { name: string };
-              price: number;
-              isFree?: boolean;
-            }) => (
-              <Card key={course.id} className="flex flex-col">
-                <CardHeader>
-                  <CardTitle className="text-lg">{course.title}</CardTitle>
-                  <CardDescription className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {course.category?.name || "General"}
+          courses.map((course: ICourse) => (
+            <Card key={course.id} className="flex flex-col">
+              <CardHeader>
+                <CardTitle className="text-lg">{course.title}</CardTitle>
+                <CardDescription className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {course.category?.name || "General"}
+                  </Badge>
+                  {course.isFree ? (
+                    <Badge variant="outline" className="text-xs text-green-600">
+                      Free
                     </Badge>
-                    {course.isFree ? (
-                      <Badge
-                        variant="outline"
-                        className="text-xs text-green-600"
-                      >
-                        Free
-                      </Badge>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        ${course.price}
-                      </span>
-                    )}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-end">
-                  <Button
-                    onClick={() => handleEnroll(course.id)}
-                    disabled={isEnrolling}
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    Enroll
-                  </Button>
-                </CardContent>
-              </Card>
-            ),
-          )
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      ${course.price}
+                    </span>
+                  )}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 space-y-4">
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {course.description}
+                </p>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <span>
+                      Instructor: {course.instructor?.name || "Unknown"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span>{course.totalEnrollments || 0} enrolled</span>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => handleEnroll(course.id)}
+                  disabled={isEnrolling}
+                >
+                  <Play className="mr-2 h-4 w-4" />
+                  Enroll
+                </Button>
+              </CardContent>
+            </Card>
+          ))
         )}
       </div>
 

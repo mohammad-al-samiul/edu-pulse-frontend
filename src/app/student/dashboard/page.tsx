@@ -13,14 +13,16 @@ import { useGetCoursesQuery } from "@/features/courses/coursesApi";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
+import { CourseStatus } from "@/types/enums";
+import type { ICourse } from "@/types/course.type";
+
 export default function StudentDashboardPage() {
   const { data: coursesData, isLoading } = useGetCoursesQuery({
-    status: "ACTIVE",
+    status: CourseStatus.PUBLISHED,
   });
 
-  const courses = Array.isArray(coursesData)
-    ? coursesData
-    : (coursesData as { data?: unknown[] })?.data || [];
+  // Extract courses array from the API response
+  const courses = coursesData?.courses || [];
 
   const enrolledCourses: unknown[] = []; // This would come from enrollment API
   const completedLessons = 0; // This would come from progress API
@@ -153,45 +155,37 @@ export default function StudentDashboardPage() {
               </p>
             ) : (
               <div className="space-y-4">
-                {courses
-                  .slice(0, 3)
-                  .map(
-                    (course: {
-                      id: string;
-                      title: string;
-                      category: { name: string };
-                      price: number;
-                      isFree: boolean;
-                    }) => (
-                      <div
-                        key={course.id}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium leading-none">
-                            {course.title}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-xs">
-                              {course.category?.name || "General"}
-                            </Badge>
-                            {course.isFree ? (
-                              <Badge
-                                variant="outline"
-                                className="text-xs text-green-600"
-                              >
-                                Free
-                              </Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">
-                                ${course.price}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                {courses.slice(0, 3).map((course: ICourse) => (
+                  <div
+                    key={course.id}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {course.title}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {course.category && course.category.name
+                            ? course.category.name
+                            : "General"}
+                        </Badge>
+                        {course.isFree ? (
+                          <Badge
+                            variant="outline"
+                            className="text-xs text-green-600"
+                          >
+                            Free
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            ${course.price}
+                          </span>
+                        )}
                       </div>
-                    ),
-                  )}
+                    </div>
+                  </div>
+                ))}
                 <Link href="/student/courses">
                   <button className="w-full mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
                     View All Courses

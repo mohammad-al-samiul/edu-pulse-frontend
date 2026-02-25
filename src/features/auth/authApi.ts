@@ -55,6 +55,13 @@ export const authApi = baseApi.injectEndpoints({
                 typeof window !== "undefined" &&
                 window.location.protocol === "https:",
             });
+            Cookies.set("user", JSON.stringify(data.user!), {
+              expires: 7,
+              sameSite: "lax",
+              secure:
+                typeof window !== "undefined" &&
+                window.location.protocol === "https:",
+            });
           }
         } catch {}
       },
@@ -118,9 +125,10 @@ export const authApi = baseApi.injectEndpoints({
         method: "POST",
         data: body,
       }),
-      async onQueryStarted(_, { dispatch }) {
+      async onQueryStarted(_) {
         Cookies.remove("accessToken");
         Cookies.remove("role");
+        Cookies.remove("user");
       },
     }),
   }),

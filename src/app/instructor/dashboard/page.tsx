@@ -17,18 +17,17 @@ import {
   Eye,
 } from "lucide-react";
 import { useGetCoursesQuery } from "@/features/courses/coursesApi";
+import { CourseStatus } from "@/types/enums";
+import type { ICourse } from "@/types/course.type";
 import Link from "next/link";
 
 export default function InstructorDashboardPage() {
   const { data: coursesData, isLoading } = useGetCoursesQuery({});
 
-  const courses = Array.isArray(coursesData)
-    ? coursesData
-    : (coursesData as { data?: unknown[] })?.data || [];
+  const courses = coursesData?.courses || [];
 
   const totalStudents = courses.reduce(
-    (acc: number, course: { enrollments?: number }) =>
-      acc + (course.enrollments || 0),
+    (acc: number, course: ICourse) => acc + (course.totalEnrollments || 0),
     0,
   );
 
@@ -46,9 +45,9 @@ export default function InstructorDashboardPage() {
       icon: Users,
     },
     {
-      title: "Active Courses",
+      title: "Published Courses",
       value: courses
-        .filter((c: { status?: string }) => c.status === "ACTIVE")
+        .filter((c: { status?: string }) => c.status === CourseStatus.PUBLISHED)
         .length.toString(),
       description: "Published courses",
       icon: TrendingUp,
@@ -120,35 +119,26 @@ export default function InstructorDashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {courses
-                  .slice(0, 5)
-                  .map(
-                    (course: {
-                      id: string;
-                      title: string;
-                      status: string;
-                      enrollments: number;
-                    }) => (
-                      <div
-                        key={course.id}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium leading-none">
-                            {course.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {course.status?.toLowerCase() || "draft"}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">
-                            {course.enrollments || 0} students
-                          </span>
-                        </div>
-                      </div>
-                    ),
-                  )}
+                {courses.slice(0, 5).map((course: ICourse) => (
+                  <div
+                    key={course.id}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {course.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {course.status?.toLowerCase() || "draft"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        {course.totalEnrollments || 0} students
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

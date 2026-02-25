@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings, ChevronDown } from "lucide-react";
+import { DashboardSkeleton } from "@/components/ui/loading-skeleton";
 
 type LinkItem = {
   label: string;
@@ -65,7 +66,7 @@ const defaultNavConfig: Record<RoleOptions, LinkItem[]> = {
 export function DashboardShell({ children, role, links }: DashboardShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isClient } = useAuth();
   const [logout] = useLogoutUserMutation();
   const { toast } = useToast();
 
@@ -99,6 +100,11 @@ export function DashboardShell({ children, role, links }: DashboardShellProps) {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Show loading state during hydration
+  if (!isClient) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <div className="min-h-screen flex bg-muted/40">

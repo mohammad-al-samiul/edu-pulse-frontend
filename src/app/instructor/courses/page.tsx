@@ -11,6 +11,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -19,25 +27,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  useGetCoursesQuery,
-  useUpdateCourseMutation,
-} from "@/features/courses/coursesApi";
+import { useGetCoursesQuery } from "@/features/courses/coursesApi";
+import { useUpdateCourseMutation } from "@/features/courses/coursesApi";
 import { useGetCategoriesQuery } from "@/features/categories/categoriesApi";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CourseStatus } from "@/types/enums";
+import type { ICourse } from "@/types/course.type";
 
 export default function InstructorCoursesPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
-  const [status, setStatus] = useState<string | undefined>(undefined);
+  const [status, setStatus] = useState<CourseStatus | undefined>(undefined);
 
   const { data: categoriesData } = useGetCategoriesQuery();
   const categories = useMemo(() => {
@@ -66,21 +66,22 @@ export default function InstructorCoursesPage() {
   });
   const [updateCourse, { isLoading: isUpdating }] = useUpdateCourseMutation();
 
-  const courses = Array.isArray(coursesData)
-    ? coursesData
-    : (coursesData as { data?: unknown[] })?.data || [];
+  const courses = coursesData?.courses || [];
 
   useEffect(() => {
     refetch();
   }, [page, limit, categoryId, status, refetch]);
 
   const handlePublish = async (id: string) => {
-    await updateCourse({ id, body: { status: "ACTIVE" } }).unwrap();
+    await updateCourse({
+      id,
+      body: { status: CourseStatus.PUBLISHED },
+    }).unwrap();
     refetch();
   };
 
   const handleUnpublish = async (id: string) => {
-    await updateCourse({ id, body: { status: "DRAFT" } }).unwrap();
+    await updateCourse({ id, body: { status: CourseStatus.DRAFT } }).unwrap();
     refetch();
   };
 
@@ -130,27 +131,37 @@ export default function InstructorCoursesPage() {
           </div>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select onValueChange={(v) => setStatus(v || undefined)}>
+            <Select
+              onValueChange={(v) =>
+                setStatus(v === "all" ? undefined : (v as CourseStatus))
+              }
+              value={status || "all"}
+            >
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="">All</SelectItem>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value={CourseStatus.PUBLISHED}>
+                  Published
+                </SelectItem>
+                <SelectItem value={CourseStatus.DRAFT}>Draft</SelectItem>
               </SelectContent>
             </Select>
-            <Select onValueChange={(v) => setCategoryId(v || undefined)}>
+            <Select
+              onValueChange={(v) => setCategoryId(v === "all" ? undefined : v)}
+              value={categoryId || "all"}
+            >
               <SelectTrigger className="w-56">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All</SelectItem>
                 {categories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
                   </SelectItem>
                 ))}
-                <SelectItem value="">All</SelectItem>
               </SelectContent>
             </Select>
             <Select onValueChange={(v) => setLimit(Number(v))}>
@@ -182,70 +193,62 @@ export default function InstructorCoursesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {courses.map(
-                  (course: {
-                    id: string;
-                    title: string;
-                    status: string;
-                    enrollments?: number;
-                    price: number;
-                    isFree?: boolean;
-                    category?: { name: string };
-                  }) => (
-                    <TableRow key={course.id}>
-                      <TableCell className="font-medium">
-                        {course.title}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {course.category?.name || "General"}
+                {courses.map((course: ICourse) => (
+                  <TableRow key={course.id}>
+                    <TableCell className="font-medium">
+                      {course.title}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {course.category?.name || "General"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          course.status === CourseStatus.PUBLISHED
+                            ? "secondary"
+                            : "outline"
+                        }
+                      >
+                        {course.status?.toLowerCase()}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {course.isFree ? (
+                        <Badge variant="outline" className="text-green-600">
+                          Free
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            course.status === "ACTIVE" ? "secondary" : "outline"
-                          }
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          ${course.price}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      {course.status !== CourseStatus.PUBLISHED ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handlePublish(course.id)}
+                          disabled={isUpdating}
                         >
-                          {course.status?.toLowerCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {course.isFree ? (
-                          <Badge variant="outline" className="text-green-600">
-                            Free
-                          </Badge>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            ${course.price}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        {course.status !== "ACTIVE" ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handlePublish(course.id)}
-                            disabled={isUpdating}
-                          >
-                            <CheckCircle2 className="mr-1 h-4 w-4" />
-                            Publish
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleUnpublish(course.id)}
-                            disabled={isUpdating}
-                          >
-                            <XCircle className="mr-1 h-4 w-4" />
-                            Unpublish
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ),
-                )}
+                          <CheckCircle2 className="mr-1 h-4 w-4" />
+                          Publish
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleUnpublish(course.id)}
+                          disabled={isUpdating}
+                        >
+                          <XCircle className="mr-1 h-4 w-4" />
+                          Unpublish
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}
