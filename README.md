@@ -1,37 +1,175 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EduPulse LMS — Production-Ready SaaS Frontend
 
-## Getting Started
+A modern, production-grade Learning Management System frontend built with:
 
-First, run the development server:
+- Next.js (App Router)
+- TypeScript (strict)
+- TailwindCSS
+- shadcn/ui
+- Jotai (auth state, persisted)
+- RTK Query (server data layer)
+- Axios (API client)
+- Zod + React Hook Form (forms/validation)
+- Recharts (analytics-ready)
+
+## Highlights
+
+- Role-based dashboards for ADMIN, INSTRUCTOR, STUDENT
+- Protected routes and auth persistence (cookies + Jotai)
+- Centralized API layer with RTK Query and axiosBaseQuery
+- Feature-based modular architecture
+- Cursor-based pagination pattern (merge + serializeQueryArgs)
+- SaaS-grade UI with reusable shadcn components
+- Clean loading, empty, and error states
+
+## Folder Structure
+
+```
+src/
+├─ app/
+│  ├─ admin/
+│  │  ├─ dashboard/page.tsx
+│  │  └─ categories/page.tsx
+│  ├─ instructor/
+│  │  ├─ dashboard/page.tsx
+│  │  ├─ courses/page.tsx
+│  │  └─ courses/new/page.tsx
+│  ├─ student/
+│  │  ├─ dashboard/page.tsx
+│  │  └─ courses/page.tsx
+│  ├─ auth/
+│  │  ├─ login/page.tsx
+│  │  └─ register/page.tsx
+│  ├─ layout.tsx
+│  └─ page.tsx
+├─ components/
+│  ├─ ui/…
+│  └─ layout/
+│     ├─ DashboardShell.tsx
+│     └─ RoleGuard.tsx
+├─ features/
+│  ├─ auth/
+│  │  └─ authApi.ts
+│  ├─ courses/
+│  │  └─ coursesApi.ts
+│  ├─ categories/
+│  │  └─ categoriesApi.ts
+│  ├─ analytics/
+│  │  └─ analyticsApi.ts
+│  ├─ enrollments/
+│  │  └─ enrollmentsApi.ts
+│  └─ users/
+│     └─ usersApi.ts
+├─ hooks/
+│  └─ useAuth.ts
+├─ lib/
+│  ├─ axiosBaseQuery.ts
+│  └─ store.ts
+├─ redux/
+│  └─ api/baseApi.ts
+├─ state/
+│  └─ auth.ts (Jotai persisted atom)
+├─ types/
+│  ├─ api.type.ts
+│  └─ category.type.ts
+└─ middleware.ts
+```
+
+## Environment
+
+- NEXT_PUBLIC_API_URL: Base URL of the backend API (e.g., https://your-api.com/api/v1)
+- Cookies used:
+  - accessToken (JWT access)
+  - role (user role)
+
+## Setup
+
+- Node.js 18+ recommended
+- Install dependencies:
+
+```bash
+npm install
+```
+
+- Development:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Typecheck + Lint:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npx tsc --noEmit && npm run lint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Production build:
 
-## Learn More
+```bash
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Auth Flow
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Login and refresh return a fixed response: `{ success, message, data }`
+- Client unpacks `data` and persists:
+  - Jotai atom: `authAtom` stores `user`
+  - Cookies: `accessToken`, `role`
+- Protected navigation:
+  - RoleGuard gate-keeps pages with cookie fallback
+  - Middleware guards route segments
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Layer
 
-## Deploy on Vercel
+- RTK Query baseApi for feature endpoints (`features/*/…Api.ts`)
+- axiosBaseQuery:
+  - Automatically attaches `Authorization` from cookies
+  - Handles 401 by calling `/users/refresh-token` and retrying
+  - Keeps server data in RTK Query cache only (no Redux slices)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Cursor Pagination Pattern (Courses)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# edu-pulse-frontend
+- Backend response:
+  - `{ success: true, message: "...", data: { data: Course[], nextCursor } }`
+- Client endpoint `getCoursesCursor`:
+  - `transformResponse` unwraps `ApiResponse.data`
+  - `serializeQueryArgs` keys cache by stable filters (limit/category/status)
+  - `merge` appends unique items and updates `nextCursor`
+  - `forceRefetch` when cursor changes
+- UI supports "Load More" and is ready for infinite scroll
+
+## Features
+
+- Admin:
+  - Categories: table, create/edit/delete dialogs
+  - Analytics: summary, revenue, top courses (Recharts-ready)
+- Instructor:
+  - Courses: create, list with filters, publish/unpublish
+- Student:
+  - Courses: listing with category filter, enroll
+
+## UI/UX
+
+- shadcn/ui components (Button, Card, Table, Dialog, Dropdown, Select, Badge)
+- Loading spinners and skeleton-ready
+- Empty and error states
+- Responsive layout and SaaS-grade dashboards
+
+## Conventions
+
+- Feature-based modular structure
+- Server data via RTK Query only
+- Global app state via Jotai (auth)
+- Strict TypeScript and Zod validation
+- Clean, minimal files; no unused boilerplate
+
+## Scripts
+
+- `npm run dev`: Start dev server
+- `npm run build`: Production build
+- `npm run lint`: ESLint
+
+## Notes
+
+- Middleware deprecation warning suggests migrating to `proxy` when ready
+- Turbopack is used by Next.js 16+

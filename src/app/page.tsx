@@ -2,24 +2,32 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { GraduationCap, BarChart3, ShieldCheck } from "lucide-react";
-import { useAppSelector } from "../hooks/reduxHooks";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Home() {
   const router = useRouter();
-  const user = useAppSelector((state) => state.auth.user);
 
+  const { user } = useAuth();
   useEffect(() => {
-    if (!user) return;
-
-    router.replace("/dashboard");
+    const role = user?.role ?? Cookies.get("role") ?? null;
+    const hasToken = !!Cookies.get("accessToken");
+    if (!role || !hasToken) return;
+    const target =
+      role === "ADMIN" || role === "SUPER_ADMIN"
+        ? "/admin/dashboard"
+        : role === "INSTRUCTOR"
+          ? "/instructor/dashboard"
+          : "/student/dashboard";
+    router.replace(target);
   }, [user, router]);
 
-  if (user) return null;
+  if (user || Cookies.get("accessToken")) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-zinc-100">
@@ -28,10 +36,12 @@ export default function Home() {
         <h1 className="text-2xl font-bold">LMS Platform</h1>
 
         <div className="space-x-4">
-          <Button variant="ghost" onClick={() => router.push("/login")}>
+          <Button variant="ghost" onClick={() => router.push("/auth/login")}>
             Login
           </Button>
-          <Button onClick={() => router.push("/register")}>Get Started</Button>
+          <Button onClick={() => router.push("/auth/register")}>
+            Get Started
+          </Button>
         </div>
       </header>
 
@@ -49,13 +59,13 @@ export default function Home() {
         </p>
 
         <div className="flex justify-center gap-4">
-          <Button size="lg" onClick={() => router.push("/register")}>
+          <Button size="lg" onClick={() => router.push("/auth/register")}>
             Start Learning
           </Button>
           <Button
             size="lg"
             variant="outline"
-            onClick={() => router.push("/login")}
+            onClick={() => router.push("/auth/login")}
           >
             Login
           </Button>
