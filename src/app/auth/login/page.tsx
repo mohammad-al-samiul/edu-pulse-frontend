@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import Link from "next/link";
@@ -37,6 +38,8 @@ export default function LoginPage() {
   const { toast } = useToast();
   const setAuth = useSetAtom(authAtom);
 
+  console.log("from login", user);
+
   const {
     register,
     handleSubmit,
@@ -46,10 +49,13 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (user?.role) {
-      if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
+    const role = user?.role ?? Cookies.get("role") ?? null;
+    const token = Cookies.get("accessToken") ?? null;
+    console.log("login useEffect:", { user, role, token });
+    if (role && token) {
+      if (role === "ADMIN" || role === "SUPER_ADMIN") {
         router.replace("/admin/dashboard");
-      } else if (user.role === "INSTRUCTOR") {
+      } else if (role === "INSTRUCTOR") {
         router.replace("/instructor/dashboard");
       } else {
         router.replace("/student/dashboard");
@@ -71,7 +77,45 @@ export default function LoginPage() {
       const payload = resp.data?.data ?? resp.data;
       const nextUser = payload?.user ?? null;
       const nextToken = payload?.accessToken ?? null;
+      console.log("login submit resp:", { payload, nextUser, nextToken });
       if (nextToken) {
+        const base64Url = nextToken.split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        try {
+          const jsonPayload = JSON.parse(
+            decodeURIComponent(
+              atob(base64)
+                .split("")
+                .map(function (c) {
+                  return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+                })
+                .join(""),
+            ),
+          ) as { role?: string; userId?: string };
+          const derivedRole = jsonPayload.role ?? null;
+          const derivedId = jsonPayload.userId ?? null;
+          if (derivedRole) {
+            Cookies.set("role", derivedRole, {
+              expires: 7,
+              sameSite: "lax",
+              secure:
+                typeof window !== "undefined" &&
+                window.location.protocol === "https:",
+            });
+          }
+          if (!nextUser && (derivedRole || derivedId)) {
+            setAuth({
+              user: {
+                id: derivedId ?? "",
+                role: (derivedRole as any) ?? "STUDENT",
+                name: "",
+                email: "",
+              },
+            });
+          }
+        } catch (e) {
+          console.warn("Failed to decode JWT for role/userId", e);
+        }
         Cookies.set("accessToken", nextToken, {
           expires: 7,
           sameSite: "lax",
@@ -89,7 +133,10 @@ export default function LoginPage() {
             window.location.protocol === "https:",
         });
       }
-      setAuth({ user: nextUser ?? null });
+      if (nextUser) {
+        setAuth({ user: nextUser });
+      }
+      console.log("login setAuth:", { user: nextUser });
 
       toast({
         title: "Logged in",
