@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Loader2, Play, Clock, CheckCircle } from "lucide-react";
 import {
   Card,
@@ -12,67 +11,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { useGetMyEnrollmentsQuery } from "@/features/enrollments/enrollmentsApi";
 import type { IEnrollment } from "@/types/enrollment.type";
 import { EnrollmentStatus } from "@/types/enums";
 
-// Mock data for enrolled courses - in real app this would come from enrollment API
-const mockEnrollments: IEnrollment[] = [
-  {
-    id: "1",
-    courseId: "1",
-    studentId: "student-1",
-    status: EnrollmentStatus.ACTIVE,
-    enrolledAt: "2024-01-15",
-    progress: 75,
-    lastAccessed: "2024-01-20",
-    course: {
-      id: "1",
-      title: "Introduction to React",
-      price: 89,
-      description: "Learn React from scratch",
-      isFree: false,
-      category: { name: "Web Development" },
-    },
-  },
-  {
-    id: "2",
-    courseId: "2",
-    studentId: "student-1",
-    status: EnrollmentStatus.ACTIVE,
-    enrolledAt: "2024-01-10",
-    progress: 30,
-    lastAccessed: "2024-01-18",
-    course: {
-      id: "2",
-      title: "Advanced TypeScript",
-      price: 120,
-      description: "Master TypeScript concepts",
-      isFree: false,
-      category: { name: "Web Development" },
-    },
-  },
-  {
-    id: "3",
-    courseId: "3",
-    studentId: "student-1",
-    status: EnrollmentStatus.COMPLETED,
-    enrolledAt: "2024-01-05",
-    completedAt: "2024-01-22",
-    progress: 100,
-    lastAccessed: "2024-01-22",
-    course: {
-      id: "3",
-      title: "UI/UX Design Fundamentals",
-      price: 0,
-      description: "Learn design principles",
-      isFree: true,
-      category: { name: "Design" },
-    },
-  },
-];
-
 export default function MyCoursesPage() {
-  const [isLoading] = useState(false);
+  const { data: enrollmentsData, isLoading } = useGetMyEnrollmentsQuery();
+  const enrollments = enrollmentsData || [];
 
   if (isLoading) {
     return (
@@ -89,7 +34,7 @@ export default function MyCoursesPage() {
         <p className="text-muted-foreground">Continue your learning journey</p>
       </div>
 
-      {mockEnrollments.length === 0 ? (
+      {enrollments.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
             <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
@@ -107,7 +52,7 @@ export default function MyCoursesPage() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {mockEnrollments.map((enrollment) => (
+          {enrollments.map((enrollment: IEnrollment) => (
             <Card key={enrollment.id} className="flex flex-col">
               <CardHeader>
                 <div className="flex items-start justify-between">

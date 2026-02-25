@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -42,13 +43,14 @@ export default function NewCoursePage() {
   const { toast } = useToast();
   const { data: categoriesData } = useGetCategoriesQuery();
   const [createCourse, { isLoading }] = useCreateCourseMutation();
-  const categories = categoriesData || [];
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<CreateCourseForm>({
     resolver: zodResolver(createCourseSchema),
     defaultValues: {
@@ -56,6 +58,8 @@ export default function NewCoursePage() {
       price: 0,
     },
   });
+
+  const isFreeValue = watch("isFree");
 
   const onSubmit: SubmitHandler<CreateCourseForm> = async (data) => {
     try {
@@ -107,9 +111,10 @@ export default function NewCoursePage() {
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Input
+              <Textarea
                 id="description"
-                placeholder="Describe your course"
+                placeholder="Describe your course in detail..."
+                rows={4}
                 {...register("description")}
               />
               {errors.description && (
@@ -163,6 +168,7 @@ export default function NewCoursePage() {
               <div className="space-y-2">
                 <Label htmlFor="isFree">Free</Label>
                 <Select
+                  value={isFreeValue ? "true" : "false"}
                   onValueChange={(value) =>
                     setValue("isFree", value === "true")
                   }

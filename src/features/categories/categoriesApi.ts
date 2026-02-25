@@ -21,6 +21,18 @@ export const categoriesApi = baseApi.injectEndpoints({
         url: "/categories",
         method: "GET",
       }),
+      transformResponse: (response: {
+        data: {
+          mode: string;
+          data: ICategory[];
+          meta?: {
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+          };
+        };
+      }) => response.data.data,
       providesTags: [apiTags.CATEGORY_LIST],
     }),
     updateCategory: builder.mutation<

@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Cookies from "js-cookie";
 import { useAuth } from "@/hooks/useAuth";
+import { DashboardSkeleton } from "@/components/ui/loading-skeleton";
 
 interface Props {
   allowedRoles: string[];
@@ -51,13 +52,9 @@ export default function RoleGuard({ allowedRoles, children }: Props) {
     }
   }, [user, accessToken, router, allowedRoles, isClient]);
 
-  // During hydration or if not authenticated, show loading state
+  // During hydration or if not authenticated, show the same skeleton as DashboardShell
   if (!isClient || (!user && !accessToken)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return <>{children}</>;

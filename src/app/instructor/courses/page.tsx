@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Loader2, CheckCircle2, XCircle, Filter, Plus } from "lucide-react";
 import {
@@ -40,7 +40,7 @@ export default function InstructorCoursesPage() {
   const [status, setStatus] = useState<CourseStatus | undefined>(undefined);
 
   const { data: categoriesData } = useGetCategoriesQuery();
-  const categories = categoriesData || [];
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
 
   const {
     data: coursesData,
@@ -57,9 +57,13 @@ export default function InstructorCoursesPage() {
 
   const courses = coursesData?.courses || [];
 
-  useEffect(() => {
+  const refetchCourses = useCallback(() => {
     refetch();
-  }, [page, limit, categoryId, status, refetch]);
+  }, [refetch]);
+
+  useEffect(() => {
+    refetchCourses();
+  }, [page, limit, categoryId, status, refetchCourses]);
 
   const handlePublish = async (id: string) => {
     await updateCourse({

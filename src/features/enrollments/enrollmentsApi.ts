@@ -11,8 +11,41 @@ export const enrollmentsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [apiTags.ENROLLMENT_LIST],
     }),
+    deleteEnrollment: builder.mutation<
+      { success: boolean },
+      { courseId: string }
+    >({
+      query: ({ courseId }) => ({
+        url: `/enrollments/${courseId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [apiTags.ENROLLMENT_LIST],
+    }),
+    getMyEnrollments: builder.query<IEnrollment[], void>({
+      query: () => ({
+        url: "/enrollments/my",
+        method: "GET",
+      }),
+      transformResponse: (response: {
+        data: {
+          mode: string;
+          data: IEnrollment[];
+          meta?: {
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+          };
+        };
+      }) => response.data.data,
+      providesTags: [apiTags.ENROLLMENT_LIST],
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useCreateEnrollmentMutation } = enrollmentsApi;
+export const {
+  useCreateEnrollmentMutation,
+  useDeleteEnrollmentMutation,
+  useGetMyEnrollmentsQuery,
+} = enrollmentsApi;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Play } from "lucide-react";
+import { Loader2, UserMinus, UserPlus } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -11,11 +11,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useGetCoursesQuery } from "@/features/courses/coursesApi";
-import { useCreateEnrollmentMutation } from "@/features/enrollments/enrollmentsApi";
+import {
+  useCreateEnrollmentMutation,
+  useDeleteEnrollmentMutation,
+  useGetMyEnrollmentsQuery,
+} from "@/features/enrollments/enrollmentsApi";
 import { CourseStatus } from "@/types/enums";
 import type { ICourse } from "@/types/course.type";
 import { useGetCategoriesQuery } from "@/features/categories/categoriesApi";
 import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Select,
   SelectContent,
@@ -28,15 +33,15 @@ export default function StudentCoursesPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(12);
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
+  const { toast } = useToast();
 
   const { data: categoriesData } = useGetCategoriesQuery();
-  const categories = categoriesData || [];
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
 
   const {
     data: coursesData,
     isLoading,
     error,
-    refetch,
   } = useGetCoursesQuery({
     page,
     limit,
@@ -44,12 +49,88 @@ export default function StudentCoursesPage() {
     status: CourseStatus.PUBLISHED,
   });
   const [enroll, { isLoading: isEnrolling }] = useCreateEnrollmentMutation();
+  const [unenroll, { isLoading: isUnenrolling }] =
+    useDeleteEnrollmentMutation();
+  const { data: enrollmentsData, refetch: refetchEnrollments } =
+    useGetMyEnrollmentsQuery();
 
   const courses = coursesData?.courses || [];
+  const enrolledCourseIds = enrollmentsData?.map((e) => e.courseId) || [];
 
-  const handleEnroll = async (id: string) => {
-    await enroll({ courseId: id }).unwrap();
-    refetch();
+  const isEnrolled = (courseId: string) => {
+    const result = enrolledCourseIds.includes(courseId);
+    console.log("🔍 DEBUG: isEnrolled check:", {
+      courseId,
+      enrolledCourseIds,
+      result,
+    });
+    return result;
+  };
+
+  const handleEnrollmentToggle = async (
+    courseId: string,
+    isCurrentlyEnrolled: boolean,
+  ) => {
+    console.log("🔍 DEBUG: Enrollment toggle called", {
+      courseId,
+      isCurrentlyEnrolled,
+    });
+
+    try {
+      if (isCurrentlyEnrolled) {
+        // Unenroll
+        console.log("🔍 DEBUG: Unenrolling course:", courseId);
+        await unenroll({ courseId }).unwrap();
+        toast({
+          title: "Successfully Unenrolled",
+          description: "You have been removed from this course.",
+          variant: "default",
+        });
+      } else {
+        // Enroll
+        console.log("🔍 DEBUG: Enrolling course:", courseId);
+        await enroll({ courseId }).unwrap();
+        toast({
+          title: "Successfully Enrolled!",
+          description: "You can now access this course from your dashboard.",
+          variant: "success",
+        });
+      }
+      // Only refetch enrollments, not courses
+      console.log("🔍 DEBUG: Refetching enrollments...");
+      refetchEnrollments();
+    } catch (error: unknown) {
+      console.error("🔍 DEBUG: Enrollment error:", error);
+
+      // Type guard for error with data property
+      const errorWithMessage = error as {
+        data?: { message?: string };
+        status?: number;
+      };
+
+      // Handle different error types
+      if (errorWithMessage?.data?.message === "Already enrolled") {
+        toast({
+          title: "Already Enrolled",
+          description: "You are already enrolled in this course.",
+          variant: "destructive",
+        });
+      } else if (errorWithMessage?.status === 400) {
+        toast({
+          title: "Operation Failed",
+          description:
+            errorWithMessage?.data?.message ||
+            "Unable to process this request.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Operation Error",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   if (isLoading) {
@@ -121,21 +202,36 @@ export default function StudentCoursesPage() {
           courses.map((course: ICourse) => (
             <Card key={course.id} className="flex flex-col">
               <CardHeader>
-                <CardTitle className="text-lg">{course.title}</CardTitle>
-                <CardDescription className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    {course.category?.name || "General"}
-                  </Badge>
-                  {course.isFree ? (
-                    <Badge variant="outline" className="text-xs text-green-600">
-                      Free
-                    </Badge>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      ${course.price}
-                    </span>
-                  )}
-                </CardDescription>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">{course.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {course.category?.name || "General"}
+                      </Badge>
+                      {course.isFree ? (
+                        <Badge
+                          variant="outline"
+                          className="text-xs text-green-600"
+                        >
+                          Free
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          ${course.price}
+                        </span>
+                      )}
+                      {isEnrolled(course.id) && (
+                        <Badge
+                          variant="default"
+                          className="text-xs bg-emerald-500"
+                        >
+                          Enrolled
+                        </Badge>
+                      )}
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="flex-1 space-y-4">
                 <p className="text-sm text-muted-foreground line-clamp-2">
@@ -151,13 +247,46 @@ export default function StudentCoursesPage() {
                     <span>{course.totalEnrollments || 0} enrolled</span>
                   </div>
                 </div>
-                <Button
-                  onClick={() => handleEnroll(course.id)}
-                  disabled={isEnrolling}
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  Enroll
-                </Button>
+                {isEnrolled(course.id) ? (
+                  <Button
+                    onClick={() => {
+                      console.log(
+                        "🔍 DEBUG: Clicked Unenroll button for course:",
+                        course.id,
+                      );
+                      handleEnrollmentToggle(course.id, true);
+                    }}
+                    disabled={isUnenrolling}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isUnenrolling ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <UserMinus className="mr-2 h-4 w-4" />
+                    )}
+                    Unenroll
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      console.log(
+                        "🔍 DEBUG: Clicked Enroll button for course:",
+                        course.id,
+                      );
+                      handleEnrollmentToggle(course.id, false);
+                    }}
+                    disabled={isEnrolling}
+                    className="w-full"
+                  >
+                    {isEnrolling ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <UserPlus className="mr-2 h-4 w-4" />
+                    )}
+                    Enroll
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))

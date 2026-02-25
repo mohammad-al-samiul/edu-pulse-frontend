@@ -4,7 +4,9 @@ export function DashboardSkeleton() {
       <aside className="hidden md:flex w-64 flex-col border-r bg-background">
         <div className="px-6 py-5 border-b">
           <h1 className="text-xl font-bold text-primary">EduPulse</h1>
-          <div className="h-4 w-24 bg-muted rounded mt-1 animate-pulse"></div>
+          <p className="text-xs text-muted-foreground capitalize">
+            <span className="h-4 w-24 bg-muted rounded inline-block animate-pulse"></span>
+          </p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           {[...Array(4)].map((_, i) => (

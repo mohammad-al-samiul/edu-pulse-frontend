@@ -34,7 +34,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const toast = useCallback(
     (toast: Omit<Toast, "id">) => {
-      const id = crypto.randomUUID();
+      const id =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substr(2, 9);
       const next: Toast = { id, ...toast };
       setToasts((current) => [...current, next]);
 
@@ -64,4 +67,3 @@ export function useToast() {
   }
   return ctx;
 }
-
