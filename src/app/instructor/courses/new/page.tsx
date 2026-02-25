@@ -42,10 +42,7 @@ export default function NewCoursePage() {
   const { toast } = useToast();
   const { data: categoriesData } = useGetCategoriesQuery();
   const [createCourse, { isLoading }] = useCreateCourseMutation();
-  const categories = Array.isArray(categoriesData)
-    ? categoriesData
-    : (categoriesData as { data?: Array<{ id: string; name: string }> })
-        ?.data || [];
+  const categories = categoriesData || [];
 
   const {
     register,

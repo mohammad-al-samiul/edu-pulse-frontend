@@ -15,7 +15,7 @@ import { useCreateEnrollmentMutation } from "@/features/enrollments/enrollmentsA
 import { CourseStatus } from "@/types/enums";
 import type { ICourse } from "@/types/course.type";
 import { useGetCategoriesQuery } from "@/features/categories/categoriesApi";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -30,18 +30,7 @@ export default function StudentCoursesPage() {
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
 
   const { data: categoriesData } = useGetCategoriesQuery();
-  const categories = useMemo(() => {
-    const raw =
-      (categoriesData as
-        | { data?: Array<{ id: string; name: string }> }
-        | Array<{ id: string; name: string }>
-        | null) ?? null;
-    return Array.isArray(raw)
-      ? raw
-      : Array.isArray(raw?.data)
-        ? raw!.data!
-        : [];
-  }, [categoriesData]);
+  const categories = categoriesData || [];
 
   const {
     data: coursesData,
