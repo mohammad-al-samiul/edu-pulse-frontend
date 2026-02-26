@@ -22,10 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html suppressHydrationWarning lang="en">
-      <body
-        suppressHydrationWarning
-        className="suppressed bg-background text-foreground"
-      >
+      <body suppressHydrationWarning className="bg-background text-foreground">
         <ErrorBoundary>
           <ReduxProvider>
             <QueryProvider>

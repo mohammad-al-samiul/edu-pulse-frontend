@@ -57,29 +57,15 @@ export default function StudentCoursesPage() {
   const courses = coursesData?.courses || [];
   const enrolledCourseIds = enrollmentsData?.map((e) => e.courseId) || [];
 
-  const isEnrolled = (courseId: string) => {
-    const result = enrolledCourseIds.includes(courseId);
-    console.log("🔍 DEBUG: isEnrolled check:", {
-      courseId,
-      enrolledCourseIds,
-      result,
-    });
-    return result;
-  };
+  const isEnrolled = (courseId: string) => enrolledCourseIds.includes(courseId);
 
   const handleEnrollmentToggle = async (
     courseId: string,
     isCurrentlyEnrolled: boolean,
   ) => {
-    console.log("🔍 DEBUG: Enrollment toggle called", {
-      courseId,
-      isCurrentlyEnrolled,
-    });
-
     try {
       if (isCurrentlyEnrolled) {
         // Unenroll
-        console.log("🔍 DEBUG: Unenrolling course:", courseId);
         await unenroll({ courseId }).unwrap();
         toast({
           title: "Successfully Unenrolled",
@@ -88,7 +74,6 @@ export default function StudentCoursesPage() {
         });
       } else {
         // Enroll
-        console.log("🔍 DEBUG: Enrolling course:", courseId);
         await enroll({ courseId }).unwrap();
         toast({
           title: "Successfully Enrolled!",
@@ -97,10 +82,9 @@ export default function StudentCoursesPage() {
         });
       }
       // Only refetch enrollments, not courses
-      console.log("🔍 DEBUG: Refetching enrollments...");
       refetchEnrollments();
     } catch (error: unknown) {
-      console.error("🔍 DEBUG: Enrollment error:", error);
+      console.error("Enrollment error:", error);
 
       // Type guard for error with data property
       const errorWithMessage = error as {
@@ -249,13 +233,7 @@ export default function StudentCoursesPage() {
                 </div>
                 {isEnrolled(course.id) ? (
                   <Button
-                    onClick={() => {
-                      console.log(
-                        "🔍 DEBUG: Clicked Unenroll button for course:",
-                        course.id,
-                      );
-                      handleEnrollmentToggle(course.id, true);
-                    }}
+                    onClick={() => handleEnrollmentToggle(course.id, true)}
                     disabled={isUnenrolling}
                     variant="outline"
                     className="w-full"
@@ -269,13 +247,7 @@ export default function StudentCoursesPage() {
                   </Button>
                 ) : (
                   <Button
-                    onClick={() => {
-                      console.log(
-                        "🔍 DEBUG: Clicked Enroll button for course:",
-                        course.id,
-                      );
-                      handleEnrollmentToggle(course.id, false);
-                    }}
+                    onClick={() => handleEnrollmentToggle(course.id, false)}
                     disabled={isEnrolling}
                     className="w-full"
                   >
